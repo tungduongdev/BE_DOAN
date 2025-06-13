@@ -30,10 +30,18 @@ const createNew = async (reqBody) => {
     const getUser = await userModel.findOneById(createdUser.insertedId)
 
     // Kiểm tra cấu hình email trước khi gửi
-    if (env.BREVO_API_KEY && env.ADMIN_EMAIL_ADDRESS && WEBSITE_DOMAIN) {
+    if (env.BREVO_API_KEY && env.ADMIN_EMAIL_ADDRESS) {
       try {
+        // Xác định WEBSITE_DOMAIN dựa trên BUILD_MODE
+        let websiteDomain = WEBSITE_DOMAIN
+        if (env.BUILD_MODE === 'dev') {
+          websiteDomain = 'http://localhost:5173'
+        } else {
+          websiteDomain = 'https://fe-doan.vercel.app'
+        }
+
         //gửi mail xác nhận tài khoản
-        const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getUser.email}&token=${getUser.verifyToken}`
+        const verificationLink = `${websiteDomain}/account/verification?email=${getUser.email}&token=${getUser.verifyToken}`
         const custonSubject = ' Please verify your email address before logging in to your account'
         const htmlContent = `
           <h3>Hi ${getUser.displayName},</h3>
@@ -54,8 +62,7 @@ const createNew = async (reqBody) => {
       console.warn('Email configuration missing. User created but verification email not sent.')
       console.warn('Missing:', {
         BREVO_API_KEY: !env.BREVO_API_KEY,
-        ADMIN_EMAIL_ADDRESS: !env.ADMIN_EMAIL_ADDRESS,
-        WEBSITE_DOMAIN: !WEBSITE_DOMAIN
+        ADMIN_EMAIL_ADDRESS: !env.ADMIN_EMAIL_ADDRESS
       })
     }
 
