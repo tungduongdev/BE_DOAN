@@ -28,18 +28,37 @@ const createNew = async (reqBody) => {
     }
     const createdUser = await userModel.createNew(newUser)
     const getUser = await userModel.findOneById(createdUser.insertedId)
-    //gửi mail xác nhận tài khoản
-    const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getUser.email}&token=${getUser.verifyToken}`
-    const custonSubject = ' Please verify your email address before logging in to your account'
-    const htmlContent = `
-      <h3>Hi ${getUser.displayName},</h3>
-      <p>Thanks for signing up with us. Please verify your email address by clicking on the link below.</p>
-      <a href="${verificationLink}">Verify your email address</a>
-      <p>If you did not create an account, no further action is required.</p>
-      <p>Thanks,</p>
-      <p>TungDuongCo</p>
-    `
-    await brevoProvider.sendEmail(getUser.email, custonSubject, htmlContent)
+
+    // Kiểm tra cấu hình email trước khi gửi
+    if (env.BREVO_API_KEY && env.ADMIN_EMAIL_ADDRESS && WEBSITE_DOMAIN) {
+      try {
+        //gửi mail xác nhận tài khoản
+        const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getUser.email}&token=${getUser.verifyToken}`
+        const custonSubject = ' Please verify your email address before logging in to your account'
+        const htmlContent = `
+          <h3>Hi ${getUser.displayName},</h3>
+          <p>Thanks for signing up with us. Please verify your email address by clicking on the link below.</p>
+          <a href="${verificationLink}">Verify your email address</a>
+          <p>If you did not create an account, no further action is required.</p>
+          <p>Thanks,</p>
+          <p>TungDuongCo</p>
+        `
+        await brevoProvider.sendEmail(getUser.email, custonSubject, htmlContent)
+        console.log('Verification email sent successfully to:', getUser.email)
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError.message)
+        // Không throw error để không làm crash quá trình đăng ký
+        // User vẫn được tạo thành công nhưng không nhận được email xác nhận
+      }
+    } else {
+      console.warn('Email configuration missing. User created but verification email not sent.')
+      console.warn('Missing:', {
+        BREVO_API_KEY: !env.BREVO_API_KEY,
+        ADMIN_EMAIL_ADDRESS: !env.ADMIN_EMAIL_ADDRESS,
+        WEBSITE_DOMAIN: !WEBSITE_DOMAIN
+      })
+    }
+
     //gọi tới provider gửi mail
     //luu dữ liệu vào db
     //trả về dữ liệu cho controller
