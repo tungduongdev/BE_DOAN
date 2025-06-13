@@ -12,6 +12,7 @@ import cookieParser from 'cookie-parser'
 import http from 'http'
 import { Server } from 'socket.io';
 import { inviteUserToBoardSocket } from './sockets/inviteUserToBoardSocket.js'
+import { cardMemberNotificationSocket } from './sockets/cardMemberNotificationSocket.js'
 
 const START_SERVER = () => {
   const app = express()
@@ -36,8 +37,12 @@ const START_SERVER = () => {
   // khoi tao socket io va cors
   const io = new Server(server, { cors: { corsOptions } });
 
+  // Lưu io instance để sử dụng trong middleware
+  app.set('socketIo', io);
+
   io.on('connection', (socket) => {
     inviteUserToBoardSocket(socket)
+    cardMemberNotificationSocket(socket)
   })
 
   server.listen(env.APP_PORT, env.APP_HOST2, () => {
